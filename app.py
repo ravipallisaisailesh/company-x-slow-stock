@@ -1,6 +1,7 @@
 
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 st.set_page_config(
     page_title="Company X Slow-Stock Tool",
@@ -8,31 +9,51 @@ st.set_page_config(
 )
 
 st.title("Company X Slow-Stock Action Tool")
-st.write("Upload the Company X Excel workbook to inspect its data.")
+st.write("Upload the Company X Excel workbook.")
 
 uploaded_file = st.file_uploader(
-    "Upload your Excel workbook",
+    "Upload Excel workbook",
     type=["xlsx"]
 )
 
-if uploaded_file is not None:
+if uploaded_file:
     try:
-        excel = pd.ExcelFile(uploaded_file)
+        sheets = pd.read_excel(
+            uploaded_file,
+            sheet_name=None
+        )
 
-        st.success("Workbook opened successfully!")
+        st.success("Workbook loaded successfully!")
 
-        st.subheader("Sheets found in your workbook")
-        st.write(excel.sheet_names)
+        required = [
+            "Item_Master",
+            "Stock_Aging",
+            "Sales_Lines",
+            "Customers"
+        ]
 
-        for sheet in excel.sheet_names:
-            df = pd.read_excel(excel, sheet_name=sheet)
+        missing = [s for s in required if s not in sheets]
 
-            st.subheader(sheet)
-            st.write("Number of rows:", len(df))
-            st.write("Number of columns:", len(df.columns))
-            st.write("Column names:", list(df.columns))
+        if missing:
+            st.error(f"Missing sheets: {missing}")
+            st.write("Sheets found:", list(sheets.keys()))
 
-            st.dataframe(df.head(5), use_container_width=True)
+        else:
+            items = sheets["Item_Master"].copy()
+            stock = sheets["Stock_Aging"].copy()
+            sales = sheets["Sales_Lines"].copy()
+
+            st.subheader("Workbook column names")
+
+            st.write("Item_Master:", list(items.columns))
+            st.write("Stock_Aging:", list(stock.columns))
+            st.write("Sales_Lines:", list(sales.columns))
+
+            st.info(
+                "Check the column names above. "
+                "The calculation section will be enabled "
+                "after the column names are matched."
+            )
 
     except Exception as e:
-        st.error(f"Could not read the workbook: {e}")
+        st.error(f"Unable to read workbook: {e}")
